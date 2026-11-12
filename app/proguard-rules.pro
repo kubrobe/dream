@@ -1,0 +1,2 @@
+-keep class uz.dream.app.data.** { *; }
+-keepattributes SourceFile,LineNumberTable
