@@ -11,6 +11,6 @@ package uz.dream.app.data.remote
  * While both are empty the app runs in "local mode": accounts and data stay on the phone.
  */
 object SupabaseConfig {
-    const val URL = ""        // e.g. "https://abcdefghijkl.supabase.co"
+    const val URL = "https://fryulyyrppyimbshsnvf.supabase.co"
     const val ANON_KEY = ""   // "eyJ..." or "sb_publishable_..."
 }
