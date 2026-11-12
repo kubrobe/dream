@@ -12,5 +12,5 @@ package uz.dream.app.data.remote
  */
 object SupabaseConfig {
     const val URL = "https://fryulyyrppyimbshsnvf.supabase.co"
-    const val ANON_KEY = ""   // "eyJ..." or "sb_publishable_..."
+    const val ANON_KEY = "sb_publishable_W5GebSnGN1vd2umX-qKGkw_qSNNFSIi"
 }
