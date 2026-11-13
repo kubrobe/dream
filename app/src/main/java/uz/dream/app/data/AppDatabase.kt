@@ -11,7 +11,7 @@ import androidx.room.RoomDatabase
         StepDone::class, Enrollment::class, Interest::class,
         Message::class, Question::class, LocalAccount::class
     ],
-    version = 1,
+    version = 2,              // 2: content in Uzbek, Russian and English
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

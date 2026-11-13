@@ -5,15 +5,19 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import uz.dream.app.R
+import uz.dream.app.data.UiText
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
-/** The server answered with an error (wrong password, no permission, ...). */
-class ApiException(val status: Int, message: String) : Exception(message)
+/** The server answered with an error (wrong password, no permission, ...). text is shown to the user. */
+class ApiException(val status: Int, val text: UiText) : Exception(text.toString())
 
 /** No internet, or Supabase could not be reached. */
-class OfflineException : Exception("Нет соединения с сервером. Проверь интернет и попробуй ещё раз.")
+class OfflineException : Exception("offline") {
+    val text: UiText get() = UiText.Res(R.string.err_offline)
+}
 
 /** What Supabase Auth returns after login. expiresAt = epoch millis when accessToken stops working. */
 class AuthSession(
@@ -149,8 +153,8 @@ class SupabaseClient(
         }
     }
 
-    /** Turns Supabase's English error into a short Russian line for the user. */
-    private fun errorText(code: Int, text: String): String {
+    /** Turns Supabase's error into a short message in the user's language. */
+    private fun errorText(code: Int, text: String): UiText {
         val json = try {
             JSONObject(text)
         } catch (e: JSONException) {
@@ -162,16 +166,16 @@ class SupabaseClient(
             ?: ""
         val low = raw.lowercase()
         return when {
-            "invalid login credentials" in low -> "Неверный email или пароль"
-            "already registered" in low || "already been registered" in low -> "Этот email уже зарегистрирован"
-            "email not confirmed" in low -> "Email не подтверждён. Открой письмо от Supabase и перейди по ссылке."
-            "password should be at least" in low || "weak" in low -> "Пароль слишком простой: нужно минимум 6 символов"
-            "invalid format" in low || "is invalid" in low -> "Проверь адрес email"
-            "rate limit" in low -> "Слишком много попыток. Подожди минуту."
-            code == 401 || code == 403 -> "Нет доступа. Войди в аккаунт ещё раз."
-            code == 404 -> "Таблица не найдена. Запусти supabase/schema.sql в Supabase."
-            raw.isNotBlank() -> raw
-            else -> "Ошибка сервера ($code)"
+            "invalid login credentials" in low -> UiText.Res(R.string.err_wrong_login)
+            "already registered" in low || "already been registered" in low -> UiText.Res(R.string.err_email_taken)
+            "email not confirmed" in low -> UiText.Res(R.string.err_email_not_confirmed)
+            "password should be at least" in low || "weak" in low -> UiText.Res(R.string.err_password_weak)
+            "invalid format" in low || "is invalid" in low -> UiText.Res(R.string.err_email)
+            "rate limit" in low -> UiText.Res(R.string.err_rate_limit)
+            code == 401 || code == 403 -> UiText.Res(R.string.err_no_access)
+            code == 404 -> UiText.Res(R.string.err_no_table)
+            raw.isNotBlank() -> UiText.Raw(raw)
+            else -> UiText.Res(R.string.err_server, code)
         }
     }
 }

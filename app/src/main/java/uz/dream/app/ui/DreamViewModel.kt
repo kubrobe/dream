@@ -21,13 +21,18 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import uz.dream.app.DreamApp
+import uz.dream.app.R
 import uz.dream.app.data.Course
 import uz.dream.app.data.DreamRepository
 import uz.dream.app.data.InfoCard
+import uz.dream.app.data.Lang
 import uz.dream.app.data.Lesson
 import uz.dream.app.data.Message
 import uz.dream.app.data.Question
 import uz.dream.app.data.Session
+import uz.dream.app.data.Settings
+import uz.dream.app.data.ThemeMode
+import uz.dream.app.data.UiText
 import uz.dream.app.data.University
 import uz.dream.app.data.UserError
 import uz.dream.app.data.remote.ApiException
@@ -35,9 +40,15 @@ import uz.dream.app.data.remote.OfflineException
 
 /** Holds screen state and survives screen rotation. Screens call its functions. */
 @OptIn(ExperimentalCoroutinesApi::class)
-class DreamViewModel(private val repo: DreamRepository) : ViewModel() {
+class DreamViewModel(private val repo: DreamRepository, private val settings: Settings) : ViewModel() {
 
     val session: StateFlow<Session?> = repo.session
+
+    // ---------- language and theme (saved on the phone) ----------
+    val lang: StateFlow<Lang> = settings.lang
+    val theme: StateFlow<ThemeMode> = settings.theme
+    fun setLang(lang: Lang) = settings.setLang(lang)
+    fun setTheme(mode: ThemeMode) = settings.setTheme(mode)
 
     /** true = connected to Supabase, false = local mode (data only on this phone). */
     val online: Boolean get() = repo.online
@@ -45,11 +56,14 @@ class DreamViewModel(private val repo: DreamRepository) : ViewModel() {
     private val _busy = MutableStateFlow(false)
     val busy: StateFlow<Boolean> = _busy.asStateFlow()          // a request is running (login, purchase, sync)
 
-    private val _authMessage = MutableStateFlow<String?>(null)
-    val authMessage: StateFlow<String?> = _authMessage.asStateFlow()   // error or hint on the login screens
+    private val _authMessage = MutableStateFlow<UiText?>(null)
+    val authMessage: StateFlow<UiText?> = _authMessage.asStateFlow()   // error or hint on the login screens
 
-    private val _notices = MutableSharedFlow<String>(extraBufferCapacity = 4)
-    val notices: SharedFlow<String> = _notices.asSharedFlow()   // short messages shown at the bottom
+    private val _notices = MutableSharedFlow<UiText>(extraBufferCapacity = 4)
+    val notices: SharedFlow<UiText> = _notices.asSharedFlow()   // short messages shown at the bottom
+
+    private val _celebrate = MutableSharedFlow<String>(extraBufferCapacity = 2)
+    val purchased: SharedFlow<String> = _celebrate.asSharedFlow()   // course id, right after a purchase
 
     // ---------- content ----------
     val roadmap: StateFlow<List<InfoCard>> = repo.cards("roadmap").keep(emptyList())
@@ -106,7 +120,7 @@ class DreamViewModel(private val repo: DreamRepository) : ViewModel() {
     fun register(fullName: String, email: String, password: String) = auth {
         val signedIn = repo.register(fullName, email, password)
         if (!signedIn) {
-            _authMessage.value = "Аккаунт создан. Открой письмо от Supabase, подтверди email и войди."
+            _authMessage.value = UiText.Res(R.string.auth_confirm_email)
         }
     }
 
@@ -132,18 +146,20 @@ class DreamViewModel(private val repo: DreamRepository) : ViewModel() {
     // ---------- actions ----------
     fun refresh() = act(showBusy = true) {
         repo.sync()
-        _notices.tryEmit(if (online) "Данные обновлены" else "Локальный режим: сервер не подключён")
+        _notices.tryEmit(UiText.Res(if (online) R.string.notice_synced else R.string.notice_local_mode))
     }
 
     fun setStepDone(cardId: String, done: Boolean) = act { repo.setStepDone(cardId, done) }
 
     fun buyCourse(courseId: String) = act(showBusy = true) {
         repo.buyCourse(courseId)
-        _notices.tryEmit("Курс открыт. Хорошей учёбы!")
+        _celebrate.tryEmit(courseId)
+        _notices.tryEmit(UiText.Res(R.string.notice_course_opened))
     }
 
     fun setInterest(universityId: String, on: Boolean) = act { repo.setInterest(universityId, on) }
 
+    /** goal = Goal.key */
     fun setGoal(goal: String) = act { repo.setGoal(goal) }
 
     fun sendMessage(roomId: String, text: String) = act { repo.sendMessage(roomId, text) }
@@ -178,9 +194,11 @@ class DreamViewModel(private val repo: DreamRepository) : ViewModel() {
         }
     }
 
-    private fun text(e: Exception): String = when (e) {
-        is UserError, is ApiException, is OfflineException -> e.message ?: "Что-то пошло не так"
-        else -> "Что-то пошло не так. Попробуй ещё раз."
+    private fun text(e: Exception): UiText = when (e) {
+        is UserError -> e.text
+        is ApiException -> e.text
+        is OfflineException -> e.text
+        else -> UiText.Res(R.string.err_generic)
     }
 
     private fun <T> Flow<T>.keep(initial: T): StateFlow<T> =
@@ -190,7 +208,7 @@ class DreamViewModel(private val repo: DreamRepository) : ViewModel() {
         val Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as DreamApp
-                DreamViewModel(app.repository)
+                DreamViewModel(app.repository, app.settings)
             }
         }
     }
