@@ -111,7 +111,7 @@ api.get("/stats", async (req, res) => {
 
 api.get("/courses", async (req, res) => {
   try {
-    const r = await sb("/rest/v1/courses?select=id,title,title_en,title_uz,teacher,level,price_uzs,glyph&order=sort");
+    const r = await sb("/rest/v1/courses?select=*&order=sort");
     if (!r.ok) return res.status(502).json({ error_key: "err_server" });
     res.json({ platform_percent: PLATFORM_PERCENT, courses: r.data.map((c) => ({ ...c, ...split(Number(c.price_uzs)) })) });
   } catch {
