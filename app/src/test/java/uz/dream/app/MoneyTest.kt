@@ -3,10 +3,14 @@ package uz.dream.app
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import uz.dream.app.data.DreamRepository
+import uz.dream.app.data.Goal
+import uz.dream.app.data.Lang
 import uz.dream.app.data.Rooms
 import uz.dream.app.data.SeedData
 import uz.dream.app.data.Sections
-import uz.dream.app.ui.uzs
+import uz.dream.app.data.body
+import uz.dream.app.data.title
+import uz.dream.app.ui.formatSum
 
 /** Plain unit tests (no phone needed): right-click this file -> Run. */
 class MoneyTest {
@@ -27,8 +31,40 @@ class MoneyTest {
 
     @Test
     fun pricesAreFormattedWithSpaces() {
-        assertEquals("349 000 сум", uzs(349_000L))
-        assertEquals("0 сум", uzs(0L))
+        assertEquals("349 000", formatSum(349_000L))
+        assertEquals("0", formatSum(0L))
+    }
+
+    @Test
+    fun allContentIsTranslatedToUzbekAndEnglish() {
+        for (c in SeedData.cards) {
+            assert(c.titleEn.isNotBlank() && c.titleUz.isNotBlank()) { "title not translated: ${c.id}" }
+            assert(c.bodyEn.isNotBlank() && c.bodyUz.isNotBlank()) { "body not translated: ${c.id}" }
+            assert(c.sourceEn.isNotBlank() && c.sourceUz.isNotBlank()) { "source not translated: ${c.id}" }
+        }
+        for (c in SeedData.courses) assert(c.titleUz.isNotBlank() && c.descriptionEn.isNotBlank()) { c.id }
+        for (l in SeedData.lessons) assert(l.contentUz.isNotBlank() && l.contentEn.isNotBlank()) { l.id }
+        for (u in SeedData.universities) assert(u.cityUz.isNotBlank() && u.typeEn.isNotBlank()) { u.id }
+    }
+
+    @Test
+    fun languagePicksTheRightTextAndFallsBackToRussian() {
+        val card = SeedData.cards.first()
+        assertEquals(card.title, card.title(Lang.RU))
+        assertEquals(card.titleEn, card.title(Lang.EN))
+        assertEquals(card.titleUz, card.title(Lang.UZ))
+        val untranslated = card.copy(bodyUz = "")
+        assertEquals(card.body, untranslated.body(Lang.UZ))
+        assertEquals(Lang.UZ, Lang.of("uz"))
+        assertEquals(null, Lang.of("de"))
+    }
+
+    @Test
+    fun oldRussianGoalsStillWork() {
+        assertEquals(Goal.BACHELOR, Goal.of("Бакалавриат"))
+        assertEquals(Goal.BACHELOR, Goal.of("bachelor"))
+        assertEquals(Goal.EXCHANGE, Goal.of("Обмен"))
+        assertEquals(null, Goal.of(""))
     }
 
     @Test

@@ -9,15 +9,13 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONArray
 import org.json.JSONObject
+import uz.dream.app.R
 import uz.dream.app.data.remote.ApiException
 import uz.dream.app.data.remote.AuthSession
 import uz.dream.app.data.remote.SupabaseClient
 import java.security.MessageDigest
 import java.time.OffsetDateTime
 import java.util.UUID
-
-/** A problem the user can fix (empty field, limit reached). The message is shown as is. */
-class UserError(message: String) : Exception(message)
 
 /** Who is signed in. In local mode the tokens are empty. */
 data class Session(
@@ -75,16 +73,16 @@ class DreamRepository(
     suspend fun register(fullName: String, email: String, password: String): Boolean {
         val name = fullName.trim()
         val mail = email.trim().lowercase()
-        if (name.length < 2) throw UserError("Напиши своё имя")
-        if (!mail.contains("@") || !mail.contains(".")) throw UserError("Проверь адрес email")
-        if (password.length < 6) throw UserError("Пароль: минимум 6 символов")
+        if (name.length < 2) throw UserError(R.string.err_name)
+        if (!mail.contains("@") || !mail.contains(".")) throw UserError(R.string.err_email)
+        if (password.length < 6) throw UserError(R.string.err_password_short)
 
         if (online) {
             val auth = api.signUp(mail, password, name) ?: return false
             saveSession(auth.toSession(fallbackName = name, goal = ""))
             sync()
         } else {
-            if (dao.findAccount(mail) != null) throw UserError("Этот email уже зарегистрирован")
+            if (dao.findAccount(mail) != null) throw UserError(R.string.err_email_taken)
             val salt = UUID.randomUUID().toString()
             val account = LocalAccount(mail, "local-" + UUID.randomUUID(), name, salt, hash(salt, password))
             dao.insertAccount(account)
@@ -95,7 +93,7 @@ class DreamRepository(
 
     suspend fun login(email: String, password: String) {
         val mail = email.trim().lowercase()
-        if (mail.isBlank() || password.isBlank()) throw UserError("Введи email и пароль")
+        if (mail.isBlank() || password.isBlank()) throw UserError(R.string.err_fill_login)
 
         if (online) {
             val auth = api.signIn(mail, password)
@@ -104,7 +102,7 @@ class DreamRepository(
         } else {
             val account = dao.findAccount(mail)
             if (account == null || account.passwordHash != hash(account.salt, password)) {
-                throw UserError("Неверный email или пароль")
+                throw UserError(R.string.err_wrong_login)
             }
             saveSession(Session(account.userId, mail, account.fullName, prefs.getString("goal_" + account.userId, "") ?: "", "", "", 0L))
         }
@@ -130,29 +128,55 @@ class DreamRepository(
         val s = _session.value ?: return
         val t = token()
 
+        // Translations come from the *_en / *_uz columns. If schema.sql in Supabase is older than the app,
+        // those columns are missing, so the built-in translations (SeedData) fill the gap.
+        val seedCards = SeedData.cards.associateBy { it.id }
+        val seedCourses = SeedData.courses.associateBy { it.id }
+        val seedLessons = SeedData.lessons.associateBy { it.id }
+        val seedUnis = SeedData.universities.associateBy { it.id }
+
         val cards = api.select("cards", "select=*&order=sort.asc", t).objects().map {
+            val id = it.getString("id")
+            val seed = seedCards[id]
             InfoCard(
-                it.getString("id"), it.getString("kind"), it.getString("section"), it.optInt("sort"),
+                id, it.getString("kind"), it.getString("section"), it.optInt("sort"),
                 it.getString("title"), it.getString("body"), it.optString("source"), it.optString("source_url"),
-                it.optString("status", "check"), it.optString("verified_at")
+                it.optString("status", "check"), it.optString("verified_at"),
+                titleEn = it.text("title_en", seed?.titleEn), titleUz = it.text("title_uz", seed?.titleUz),
+                bodyEn = it.text("body_en", seed?.bodyEn), bodyUz = it.text("body_uz", seed?.bodyUz),
+                sourceEn = it.text("source_en", seed?.sourceEn), sourceUz = it.text("source_uz", seed?.sourceUz)
             )
         }
         val courses = api.select("courses", "select=*&order=sort.asc", t).objects().map {
+            val id = it.getString("id")
+            val seed = seedCourses[id]
             Course(
-                it.getString("id"), it.optInt("sort"), it.getString("title"), it.getString("teacher"),
-                it.getString("level"), it.optLong("price_uzs"), it.getString("glyph"), it.getString("description")
+                id, it.optInt("sort"), it.getString("title"), it.getString("teacher"),
+                it.getString("level"), it.optLong("price_uzs"), it.getString("glyph"), it.getString("description"),
+                titleEn = it.text("title_en", seed?.titleEn), titleUz = it.text("title_uz", seed?.titleUz),
+                levelEn = it.text("level_en", seed?.levelEn), levelUz = it.text("level_uz", seed?.levelUz),
+                descriptionEn = it.text("description_en", seed?.descriptionEn),
+                descriptionUz = it.text("description_uz", seed?.descriptionUz)
             )
         }
         val lessons = api.select("lessons", "select=*&order=sort.asc", t).objects().map {
+            val id = it.getString("id")
+            val seed = seedLessons[id]
             Lesson(
-                it.getString("id"), it.getString("course_id"), it.optInt("sort"), it.getString("title"),
-                it.optInt("minutes"), it.optBoolean("free"), it.optString("content")
+                id, it.getString("course_id"), it.optInt("sort"), it.getString("title"),
+                it.optInt("minutes"), it.optBoolean("free"), it.optString("content"),
+                titleEn = it.text("title_en", seed?.titleEn), titleUz = it.text("title_uz", seed?.titleUz),
+                contentEn = it.text("content_en", seed?.contentEn), contentUz = it.text("content_uz", seed?.contentUz)
             )
         }
         val universities = api.select("universities", "select=*&order=sort.asc", t).objects().map {
+            val id = it.getString("id")
+            val seed = seedUnis[id]
             University(
-                it.getString("id"), it.optInt("sort"), it.getString("name"), it.getString("city"),
-                it.getString("type"), it.optString("url")
+                id, it.optInt("sort"), it.getString("name"), it.getString("city"),
+                it.getString("type"), it.optString("url"),
+                cityEn = it.text("city_en", seed?.cityEn), cityUz = it.text("city_uz", seed?.cityUz),
+                typeEn = it.text("type_en", seed?.typeEn), typeUz = it.text("type_uz", seed?.typeUz)
             )
         }
         // An empty answer means schema.sql was not run yet: keep the built-in content.
@@ -204,7 +228,7 @@ class DreamRepository(
     /** Demo purchase: no real money moves. The split is saved: 15% platform, 85% teacher. */
     suspend fun buyCourse(courseId: String) {
         val s = requireSession()
-        val course = dao.findCourse(courseId) ?: throw UserError("Курс не найден")
+        val course = dao.findCourse(courseId) ?: throw UserError(R.string.err_course_missing)
         val fee = platformFee(course.priceUzs)
         val share = course.priceUzs - fee
         if (online) {
@@ -226,10 +250,10 @@ class DreamRepository(
     suspend fun askQuestion(courseId: String, text: String) {
         val s = requireSession()
         val body = text.trim()
-        if (body.isEmpty()) throw UserError("Напиши вопрос")
-        if (body.length > 1000) throw UserError("Вопрос слишком длинный (максимум 1000 символов)")
+        if (body.isEmpty()) throw UserError(R.string.err_question_empty)
+        if (body.length > 1000) throw UserError(R.string.err_too_long, 1000)
         if (dao.questionCount(courseId, s.userId) >= QUESTION_LIMIT) {
-            throw UserError("В этом курсе можно задать только $QUESTION_LIMIT вопроса преподавателю")
+            throw UserError(R.string.err_question_limit, QUESTION_LIMIT)
         }
         if (online) {
             val row = JSONObject().put("user_id", s.userId).put("course_id", courseId).put("body", body)
@@ -253,7 +277,7 @@ class DreamRepository(
         val s = requireSession()
         val body = text.trim()
         if (body.isEmpty()) return
-        if (body.length > 1000) throw UserError("Сообщение слишком длинное (максимум 1000 символов)")
+        if (body.length > 1000) throw UserError(R.string.err_too_long, 1000)
         if (online) {
             val row = JSONObject().put("user_id", s.userId).put("room_id", roomId).put("author", s.fullName).put("body", body)
             dao.insertMessages(api.insert("messages", row, token()).objects().map { it.toMessage() })
@@ -286,6 +310,7 @@ class DreamRepository(
     }
 
     // ---------- profile ----------
+    /** goal is a Goal.key ("bachelor", "master", ...). */
     suspend fun setGoal(goal: String) {
         val s = requireSession()
         if (online) {
@@ -298,7 +323,7 @@ class DreamRepository(
     }
 
     // ---------- session ----------
-    private fun requireSession(): Session = _session.value ?: throw UserError("Сначала войди в аккаунт")
+    private fun requireSession(): Session = _session.value ?: throw UserError(R.string.err_sign_in_first)
 
     private val refreshLock = Mutex()
 
@@ -316,7 +341,7 @@ class DreamRepository(
                     fresh.accessToken
                 } catch (e: ApiException) {
                     clearSession()
-                    throw UserError("Сессия закончилась. Войди ещё раз.")
+                    throw UserError(R.string.err_session_expired)
                 }
             }
         }
@@ -368,6 +393,12 @@ class DreamRepository(
 
     // ---------- small helpers ----------
     private fun JSONArray.objects(): List<JSONObject> = (0 until length()).map { getJSONObject(it) }
+
+    /** A translated column; if it is missing or empty, the built-in translation. */
+    private fun JSONObject.text(column: String, fallback: String?): String {
+        val value = if (isNull(column)) "" else optString(column)
+        return value.ifBlank { fallback.orEmpty() }
+    }
 
     private fun JSONObject.toMessage() = Message(
         id = get("id").toString(),

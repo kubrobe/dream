@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- dark window behind the app while it starts, so there is no white flash in dark mode -->
+    <style name="Theme.Dream" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#081716</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

@@ -5,6 +5,8 @@ import androidx.room.PrimaryKey
 
 // Each @Entity class is one table in the phone's SQLite database (Room).
 // The same tables exist in Supabase (see supabase/schema.sql); Room is the local copy.
+// Text columns without a suffix are Russian; *En is English, *Uz is Uzbek (Latin).
+// Localized.kt picks the right one for the language the user chose.
 
 /** One card of the roadmap or of the after-arrival guide. status: "verified" | "check" | "tip". */
 @Entity(tableName = "cards")
@@ -18,7 +20,13 @@ data class InfoCard(
     val source: String,
     val sourceUrl: String,
     val status: String,
-    val verifiedAt: String     // "2026-11-12", or "" when not verified
+    val verifiedAt: String,    // "2026-11-12", or "" when not verified
+    val titleEn: String = "",
+    val titleUz: String = "",
+    val bodyEn: String = "",
+    val bodyUz: String = "",
+    val sourceEn: String = "",
+    val sourceUz: String = ""
 )
 
 @Entity(tableName = "courses")
@@ -30,7 +38,13 @@ data class Course(
     val level: String,
     val priceUzs: Long,
     val glyph: String,         // big hangul sign on the course tile
-    val description: String
+    val description: String,
+    val titleEn: String = "",
+    val titleUz: String = "",
+    val levelEn: String = "",
+    val levelUz: String = "",
+    val descriptionEn: String = "",
+    val descriptionUz: String = ""
 )
 
 @Entity(tableName = "lessons")
@@ -41,7 +55,11 @@ data class Lesson(
     val title: String,
     val minutes: Int,
     val free: Boolean,         // free lessons are open before buying
-    val content: String
+    val content: String,
+    val titleEn: String = "",
+    val titleUz: String = "",
+    val contentEn: String = "",
+    val contentUz: String = ""
 )
 
 @Entity(tableName = "universities")
@@ -51,7 +69,11 @@ data class University(
     val name: String,
     val city: String,
     val type: String,
-    val url: String
+    val url: String,
+    val cityEn: String = "",
+    val cityUz: String = "",
+    val typeEn: String = "",
+    val typeUz: String = ""
 )
 
 /** The user ticked this roadmap step. */

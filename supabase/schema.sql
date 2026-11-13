@@ -14,7 +14,13 @@ create table if not exists public.cards (
   source      text not null default '',
   source_url  text not null default '',
   status      text not null default 'check' check (status in ('verified', 'check', 'tip')),
-  verified_at text not null default ''
+  verified_at text not null default '',
+  title_en    text not null default '',
+  title_uz    text not null default '',
+  body_en     text not null default '',
+  body_uz     text not null default '',
+  source_en   text not null default '',
+  source_uz   text not null default ''
 );
 
 create table if not exists public.courses (
@@ -25,7 +31,13 @@ create table if not exists public.courses (
   level       text   not null,
   price_uzs   bigint not null check (price_uzs >= 0),
   glyph       text   not null,
-  description text   not null
+  description text   not null,
+  title_en       text not null default '',
+  title_uz       text not null default '',
+  level_en       text not null default '',
+  level_uz       text not null default '',
+  description_en text not null default '',
+  description_uz text not null default ''
 );
 
 create table if not exists public.lessons (
@@ -35,7 +47,11 @@ create table if not exists public.lessons (
   title     text not null,
   minutes   int  not null default 0,
   free      boolean not null default false,
-  content   text not null default ''
+  content   text not null default '',
+  title_en   text not null default '',
+  title_uz   text not null default '',
+  content_en text not null default '',
+  content_uz text not null default ''
 );
 
 create table if not exists public.universities (
@@ -44,14 +60,40 @@ create table if not exists public.universities (
   name text not null,
   city text not null,
   type text not null,
-  url  text not null default ''
+  url  text not null default '',
+  city_en text not null default '',
+  city_uz text not null default '',
+  type_en text not null default '',
+  type_uz text not null default ''
 );
+
+-- ---------- translations (Uzbek + English) for databases created before they existed ----------
+alter table public.cards        add column if not exists title_en text not null default '';
+alter table public.cards        add column if not exists title_uz text not null default '';
+alter table public.cards        add column if not exists body_en text not null default '';
+alter table public.cards        add column if not exists body_uz text not null default '';
+alter table public.cards        add column if not exists source_en text not null default '';
+alter table public.cards        add column if not exists source_uz text not null default '';
+alter table public.courses      add column if not exists title_en text not null default '';
+alter table public.courses      add column if not exists title_uz text not null default '';
+alter table public.courses      add column if not exists level_en text not null default '';
+alter table public.courses      add column if not exists level_uz text not null default '';
+alter table public.courses      add column if not exists description_en text not null default '';
+alter table public.courses      add column if not exists description_uz text not null default '';
+alter table public.lessons      add column if not exists title_en text not null default '';
+alter table public.lessons      add column if not exists title_uz text not null default '';
+alter table public.lessons      add column if not exists content_en text not null default '';
+alter table public.lessons      add column if not exists content_uz text not null default '';
+alter table public.universities add column if not exists city_en text not null default '';
+alter table public.universities add column if not exists city_uz text not null default '';
+alter table public.universities add column if not exists type_en text not null default '';
+alter table public.universities add column if not exists type_uz text not null default '';
 
 -- ---------- tables: users and what they do ----------
 create table if not exists public.profiles (
   id         uuid primary key references auth.users (id) on delete cascade,
   full_name  text not null default '',
-  goal       text not null default '',
+  goal       text not null default '',   -- 'bachelor' | 'master' | 'language' | 'exchange' 
   created_at timestamptz not null default now()
 );
 
@@ -193,57 +235,93 @@ create policy "rooms write" on public.messages for insert to authenticated with 
 
 -- ---------- content ----------
 
-insert into public.cards (id, kind, section, sort, title, body, source, source_url, status, verified_at) values
+insert into public.cards (id, kind, section, sort, title, body, source, source_url, status, verified_at, title_en, title_uz, body_en, body_uz, source_en, source_uz) values
   ('r_goal', 'roadmap', 'lang', 0, 'Выбери тип программы', 'От программы зависит тип визы. Бакалавриат идёт по визе D-2-2, программа обмена — по D-2-6. Языковые курсы при университете — это отдельная виза D-4.
 
-Реши сначала, куда ты идёшь: сразу на степень или сначала на язык. От этого зависят документы и сроки.', 'Sahmyook University — Residence Qualifications for International Students', 'https://iie.syu.ac.kr/en/student-life/residence', 'verified', '2026-11-12'),
+Реши сначала, куда ты идёшь: сразу на степень или сначала на язык. От этого зависят документы и сроки.', 'Sahmyook University — Residence Qualifications for International Students', 'https://iie.syu.ac.kr/en/student-life/residence', 'verified', '2026-11-12', 'Choose the type of programme', 'Dastur turini tanlang', 'The programme decides the visa type. A bachelor''s degree uses the D-2-2 visa, an exchange programme uses D-2-6. Language courses at a university are a separate D-4 visa.
+
+First decide where you are going: straight to a degree or to language study first. Your documents and deadlines depend on it.', 'Viza turi dasturga bogʻliq. Bakalavriat uchun D-2-2 vizasi, almashinuv dasturi uchun D-2-6 vizasi beriladi. Universitet qoshidagi til kurslari — alohida D-4 vizasi.
+
+Avval qayerga borishingizni hal qiling: darhol darajaga yoki avval til oʻrganishga. Hujjatlar va muddatlar shunga bogʻliq.', 'Sahmyook University — Residence Qualifications for International Students', 'Sahmyook University — Residence Qualifications for International Students'),
   ('r_topik', 'roadmap', 'lang', 1, 'Сдай TOPIK', 'TOPIK — государственный экзамен по корейскому. TOPIK I даёт уровни 1–2, TOPIK II — уровни 3–6. Для программ на корейском вузы обычно просят уровень 3 и выше, но точное требование у каждого вуза своё.
 
-Даты экзамена в Ташкенте и регистрацию смотри на официальном сайте.', 'TOPIK — официальный сайт', 'https://www.topik.go.kr', 'check', ''),
-  ('r_english', 'roadmap', 'lang', 2, 'Английский трек: IELTS или TOEFL', 'Если программа на английском, вместо TOPIK вуз попросит IELTS или TOEFL. Минимальный балл зависит от вуза и факультета — смотри Admission Guide конкретного университета.', 'Study in Korea — портал Министерства образования Кореи', 'https://www.studyinkorea.go.kr', 'check', ''),
+Даты экзамена в Ташкенте и регистрацию смотри на официальном сайте.', 'TOPIK — официальный сайт', 'https://www.topik.go.kr', 'check', '', 'Take TOPIK', 'TOPIK topshiring', 'TOPIK is the official Korean language test. TOPIK I gives levels 1–2, TOPIK II gives levels 3–6. For programmes taught in Korean, universities usually ask for level 3 or higher, but each university sets its own requirement.
+
+Check test dates in Tashkent and registration on the official website.', 'TOPIK — koreys tili boʻyicha davlat imtihoni. TOPIK I 1–2-darajani, TOPIK II 3–6-darajani beradi. Koreys tilidagi dasturlar uchun universitetlar odatda 3-daraja va undan yuqorisini soʻraydi, lekin aniq talab har bir universitetda oʻziga xos.
+
+Toshkentdagi imtihon sanalari va roʻyxatdan oʻtishni rasmiy saytdan koʻring.', 'TOPIK — official website', 'TOPIK — rasmiy sayt'),
+  ('r_english', 'roadmap', 'lang', 2, 'Английский трек: IELTS или TOEFL', 'Если программа на английском, вместо TOPIK вуз попросит IELTS или TOEFL. Минимальный балл зависит от вуза и факультета — смотри Admission Guide конкретного университета.', 'Study in Korea — портал Министерства образования Кореи', 'https://www.studyinkorea.go.kr', 'check', '', 'English track: IELTS or TOEFL', 'Ingliz tili yoʻli: IELTS yoki TOEFL', 'If the programme is taught in English, the university will ask for IELTS or TOEFL instead of TOPIK. The minimum score depends on the university and the faculty: check that university''s Admission Guide.', 'Agar dastur ingliz tilida boʻlsa, universitet TOPIK oʻrniga IELTS yoki TOEFL soʻraydi. Minimal ball universitet va fakultetga bogʻliq — aniq universitetning Admission Guide hujjatini koʻring.', 'Study in Korea — portal of the Korean Ministry of Education', 'Study in Korea — Koreya Taʼlim vazirligi portali'),
   ('r_list', 'roadmap', 'univ', 3, 'Составь список из 5–8 вузов', 'Раздели список на три группы: мечта, реальные, запасные. По каждому вузу выпиши: язык обучения, требование по языку, стоимость семестра, дедлайн и стипендии для иностранцев.
 
-В разделе «Вузы» можно показать университету свой интерес.', 'Совет Dream', '', 'tip', ''),
+В разделе «Вузы» можно показать университету свой интерес.', 'Совет Dream', '', 'tip', '', 'Make a list of 5–8 universities', '5–8 ta universitetdan roʻyxat tuzing', 'Split the list into three groups: dream, realistic, safe. For each university write down: language of study, language requirement, cost per semester, deadline and scholarships for international students.
+
+In the Universities tab you can show a university that you are interested.', 'Roʻyxatni uch guruhga ajrating: orzu, real, zaxira. Har bir universitet uchun yozib qoʻying: taʼlim tili, til talabi, semestr narxi, muddat va chet elliklar uchun grantlar.
+
+«OTMlar» boʻlimida universitetga qiziqishingizni bildirishingiz mumkin.', 'Dream tip', 'Dream maslahati'),
   ('r_gks', 'roadmap', 'univ', 4, 'Стипендия GKS', 'Global Korea Scholarship — стипендия правительства Кореи для иностранных студентов. Подать можно через посольство Кореи или напрямую через университет.
 
-Что покрывает стипендия и точные сроки набора на твой год — проверь в официальном объявлении.', 'Study in Korea — раздел GKS', 'https://www.studyinkorea.go.kr', 'check', ''),
-  ('r_deadlines', 'roadmap', 'univ', 5, 'Следи за сроками подачи', 'В Корее два семестра: весенний и осенний. Приём документов обычно идёт за несколько месяцев до начала семестра. Точные даты у каждого вуза свои.', 'Сайт приёмной комиссии выбранного вуза', 'https://www.studyinkorea.go.kr', 'check', ''),
-  ('r_docs', 'roadmap', 'docs', 6, 'Аттестат или диплом с апостилем', 'Вуз попросит документ об образовании и выписку оценок с переводом и легализацией. Как именно заверять документы из Узбекистана (апостиль или консульская легализация) — уточни в выбранном вузе.', 'HCCH — статус Конвенции об апостиле', 'https://www.hcch.net', 'check', ''),
+Что покрывает стипендия и точные сроки набора на твой год — проверь в официальном объявлении.', 'Study in Korea — раздел GKS', 'https://www.studyinkorea.go.kr', 'check', '', 'GKS scholarship', 'GKS granti', 'Global Korea Scholarship is the Korean government''s scholarship for international students. You can apply through the Korean embassy or directly through a university.
+
+Check what the scholarship covers and the exact deadlines for your year in the official announcement.', 'Global Korea Scholarship — Koreya hukumatining xorijiy talabalar uchun granti. Ariza Koreya elchixonasi orqali yoki toʻgʻridan-toʻgʻri universitet orqali topshiriladi.
+
+Grant nimalarni qoplashi va sizning yilingiz uchun aniq muddatlarni rasmiy eʼlondan tekshiring.', 'Study in Korea — GKS section', 'Study in Korea — GKS boʻlimi'),
+  ('r_deadlines', 'roadmap', 'univ', 5, 'Следи за сроками подачи', 'В Корее два семестра: весенний и осенний. Приём документов обычно идёт за несколько месяцев до начала семестра. Точные даты у каждого вуза свои.', 'Сайт приёмной комиссии выбранного вуза', 'https://www.studyinkorea.go.kr', 'check', '', 'Watch the application deadlines', 'Ariza muddatlarini kuzating', 'Korea has two semesters: spring and autumn. Applications usually close several months before the semester starts. Each university has its own exact dates.', 'Koreyada ikki semestr bor: bahorgi va kuzgi. Hujjatlar odatda semestr boshlanishidan bir necha oy oldin qabul qilinadi. Aniq sanalar har bir universitetda oʻziga xos.', 'Admissions website of your chosen university', 'Tanlangan universitetning qabul komissiyasi sayti'),
+  ('r_docs', 'roadmap', 'docs', 6, 'Аттестат или диплом с апостилем', 'Вуз попросит документ об образовании и выписку оценок с переводом и легализацией. Как именно заверять документы из Узбекистана (апостиль или консульская легализация) — уточни в выбранном вузе.', 'HCCH — статус Конвенции об апостиле', 'https://www.hcch.net', 'check', '', 'School certificate or diploma with apostille', 'Apostilli attestat yoki diplom', 'The university will ask for your education document and transcript, translated and legalised. Ask your chosen university exactly how documents from Uzbekistan must be certified (apostille or consular legalisation).', 'Universitet taʼlim haqidagi hujjat va baholar koʻchirmasini tarjima va legalizatsiya bilan soʻraydi. Oʻzbekiston hujjatlari qanday tasdiqlanishi kerakligini (apostil yoki konsullik legalizatsiyasi) tanlangan universitetdan aniqlang.', 'HCCH — Apostille Convention status', 'HCCH — Apostil konvensiyasi holati'),
   ('r_bank', 'roadmap', 'docs', 7, 'Финансовая гарантия', 'Для визы нужна справка об остатке на банковском счёте. Суммы в разных источниках отличаются: встречаются 20 млн вон (16 млн для вузов вне столичного региона) и 20 000 долларов.
 
-Не полагайся на чужие цифры: спроси точную сумму у своего вуза и в посольстве Кореи в Ташкенте.', 'Международный отдел вуза и посольство Кореи', 'https://iie.syu.ac.kr/en/student-life/residence', 'check', ''),
-  ('r_letter', 'roadmap', 'docs', 8, 'Мотивационное письмо и учебный план', 'Пиши конкретно: почему эта специальность, почему этот вуз, что ты будешь делать после выпуска. Дай прочитать письмо человеку, который уже поступил — спроси в комнате этого раздела.', 'Совет Dream', '', 'tip', ''),
-  ('r_admission', 'roadmap', 'visa', 9, 'Получи Certificate of Admission', 'После зачисления вуз выдаёт стандартное письмо о зачислении. На его основе подаётся виза. Подкатегорию визы определяет вуз в этом документе.', 'Korea Visa Portal', 'https://www.visa.go.kr', 'check', ''),
-  ('r_visa', 'roadmap', 'visa', 10, 'Подай на визу D-2', 'Заявление подаётся через Korea Visa Portal или в консульском отделе посольства Кореи. Список документов и срок рассмотрения уточняй в посольстве в Ташкенте.', 'Korea Visa Portal', 'https://www.visa.go.kr', 'check', ''),
-  ('r_insurance', 'roadmap', 'arrival', 11, 'Купи страховку на первые месяцы', 'Государственная страховка NHIS начинает действовать только после регистрации иностранца в Корее. Korea University советует купить частную страховку как минимум на первые 90 дней после приезда.', 'Korea University — Student Guidebook, Insurance', 'https://sites.google.com/view/ku-student-guidebook/insurance', 'verified', '2026-11-12'),
-  ('r_housing', 'roadmap', 'arrival', 12, 'Реши вопрос с жильём', 'Подай заявку на общежитие сразу после зачисления: мест обычно меньше, чем желающих. Если снимаешь жильё, сохрани договор — он понадобится для регистрации.', 'Совет Dream', '', 'tip', ''),
+Не полагайся на чужие цифры: спроси точную сумму у своего вуза и в посольстве Кореи в Ташкенте.', 'Международный отдел вуза и посольство Кореи', 'https://iie.syu.ac.kr/en/student-life/residence', 'check', '', 'Proof of funds', 'Moliyaviy kafolat', 'The visa needs a bank balance certificate. Different sources give different amounts: you will see 20 million won (16 million for universities outside the capital region) and 20,000 dollars.
+
+Don''t rely on other people''s numbers: ask your university and the Korean embassy in Tashkent for the exact amount.', 'Viza uchun bank hisobidagi qoldiq haqida maʼlumotnoma kerak. Turli manbalarda summa har xil: 20 mln von (poytaxt hududidan tashqaridagi universitetlar uchun 16 mln) va 20 000 dollar uchraydi.
+
+Boshqalarning raqamlariga ishonmang: aniq summani universitetingiz va Toshkentdagi Koreya elchixonasidan soʻrang.', 'University international office and the Korean embassy', 'Universitetning xalqaro boʻlimi va Koreya elchixonasi'),
+  ('r_letter', 'roadmap', 'docs', 8, 'Мотивационное письмо и учебный план', 'Пиши конкретно: почему эта специальность, почему этот вуз, что ты будешь делать после выпуска. Дай прочитать письмо человеку, который уже поступил — спроси в комнате этого раздела.', 'Совет Dream', '', 'tip', '', 'Motivation letter and study plan', 'Motivatsion xat va oʻquv rejasi', 'Be specific: why this major, why this university, what you will do after graduating. Ask someone who has already been admitted to read your letter: ask in this section''s room.', 'Aniq yozing: nega aynan shu mutaxassislik, nega shu universitet, bitirgandan keyin nima qilasiz. Xatni allaqachon oʻqishga kirgan odamga oʻqitib koʻring — shu boʻlim xonasida soʻrang.', 'Dream tip', 'Dream maslahati'),
+  ('r_admission', 'roadmap', 'visa', 9, 'Получи Certificate of Admission', 'После зачисления вуз выдаёт стандартное письмо о зачислении. На его основе подаётся виза. Подкатегорию визы определяет вуз в этом документе.', 'Korea Visa Portal', 'https://www.visa.go.kr', 'check', '', 'Get the Certificate of Admission', 'Certificate of Admission oling', 'After admission the university issues a standard admission letter. You apply for the visa based on it. The university sets the visa subcategory in this document.', 'Qabul qilingandan soʻng universitet standart qabul xatini beradi. Viza shu asosda topshiriladi. Viza kichik toifasini universitet shu hujjatda belgilaydi.', 'Korea Visa Portal', 'Korea Visa Portal'),
+  ('r_visa', 'roadmap', 'visa', 10, 'Подай на визу D-2', 'Заявление подаётся через Korea Visa Portal или в консульском отделе посольства Кореи. Список документов и срок рассмотрения уточняй в посольстве в Ташкенте.', 'Korea Visa Portal', 'https://www.visa.go.kr', 'check', '', 'Apply for the D-2 visa', 'D-2 vizasiga ariza topshiring', 'You apply through the Korea Visa Portal or at the consular section of the Korean embassy. Check the list of documents and processing time with the embassy in Tashkent.', 'Ariza Korea Visa Portal orqali yoki Koreya elchixonasining konsullik boʻlimida topshiriladi. Hujjatlar roʻyxati va koʻrib chiqish muddatini Toshkentdagi elchixonadan aniqlang.', 'Korea Visa Portal', 'Korea Visa Portal'),
+  ('r_insurance', 'roadmap', 'arrival', 11, 'Купи страховку на первые месяцы', 'Государственная страховка NHIS начинает действовать только после регистрации иностранца в Корее. Korea University советует купить частную страховку как минимум на первые 90 дней после приезда.', 'Korea University — Student Guidebook, Insurance', 'https://sites.google.com/view/ku-student-guidebook/insurance', 'verified', '2026-11-12', 'Buy insurance for the first months', 'Dastlabki oylar uchun sugʻurta oling', 'The national NHIS insurance starts only after you register as a foreigner in Korea. Korea University advises buying private insurance for at least the first 90 days after arrival.', 'Davlat NHIS sugʻurtasi faqat Koreyada chet ellik sifatida roʻyxatdan oʻtgandan keyin amal qila boshlaydi. Korea University kelgandan keyingi kamida dastlabki 90 kun uchun xususiy sugʻurta olishni maslahat beradi.', 'Korea University — Student Guidebook, Insurance', 'Korea University — Student Guidebook, Insurance'),
+  ('r_housing', 'roadmap', 'arrival', 12, 'Реши вопрос с жильём', 'Подай заявку на общежитие сразу после зачисления: мест обычно меньше, чем желающих. Если снимаешь жильё, сохрани договор — он понадобится для регистрации.', 'Совет Dream', '', 'tip', '', 'Sort out housing', 'Turar joy masalasini hal qiling', 'Apply for the dormitory right after admission: there are usually fewer places than applicants. If you rent a flat, keep the contract: you will need it to register.', 'Qabul qilingandan soʻng darhol yotoqxonaga ariza bering: joylar odatda istovchilardan kam. Agar uy ijaraga olsangiz, shartnomani saqlang — roʻyxatdan oʻtish uchun kerak boʻladi.', 'Dream tip', 'Dream maslahati'),
   ('g_arc', 'guide', 'first90', 13, 'Residence Card — в течение 90 дней', 'Иностранцы, которые остаются в Корее дольше 90 дней, обязаны зарегистрироваться и подать на Residence Card (раньше называлась ARC) в течение 90 дней после въезда. За опоздание возможен штраф.
 
-Не выезжай из Кореи, пока карта не на руках: Ewha предупреждает, что визу в этом случае аннулируют. По данным BUFS, пошлина за карту — 30 000 вон.', 'Ewha Womans University — Foreign Resident Registration', 'https://isa.ewha.ac.kr/oisa/2181/subview.do', 'verified', '2026-11-12'),
-  ('g_address', 'guide', 'first90', 14, 'Сообщай о смене адреса', 'Если ты переехал, о новом адресе нужно сообщить в иммиграционную службу или районную администрацию. В неофициальных источниках указан срок 14 дней — проверь его на Hi Korea.', 'Hi Korea — портал иммиграционной службы', 'https://www.hikorea.go.kr', 'check', ''),
+Не выезжай из Кореи, пока карта не на руках: Ewha предупреждает, что визу в этом случае аннулируют. По данным BUFS, пошлина за карту — 30 000 вон.', 'Ewha Womans University — Foreign Resident Registration', 'https://isa.ewha.ac.kr/oisa/2181/subview.do', 'verified', '2026-11-12', 'Residence Card within 90 days', 'Residence Card — 90 kun ichida', 'Foreigners staying in Korea longer than 90 days must register and apply for a Residence Card (formerly called ARC) within 90 days of entry. Being late can mean a fine.
+
+Don''t leave Korea before you have the card: Ewha warns that the visa is cancelled in that case. According to BUFS, the card fee is 30,000 won.', 'Koreyada 90 kundan uzoq qoladigan chet elliklar kirgandan keyin 90 kun ichida roʻyxatdan oʻtishi va Residence Card (avval ARC deb atalgan) uchun ariza berishi shart. Kechiksangiz, jarima solinishi mumkin.
+
+Karta qoʻlingizga tegmaguncha Koreyadan chiqmang: Ewha bu holda viza bekor qilinishini ogohlantiradi. BUFS maʼlumotiga koʻra, karta boji — 30 000 von.', 'Ewha Womans University — Foreign Resident Registration', 'Ewha Womans University — Foreign Resident Registration'),
+  ('g_address', 'guide', 'first90', 14, 'Сообщай о смене адреса', 'Если ты переехал, о новом адресе нужно сообщить в иммиграционную службу или районную администрацию. В неофициальных источниках указан срок 14 дней — проверь его на Hi Korea.', 'Hi Korea — портал иммиграционной службы', 'https://www.hikorea.go.kr', 'check', '', 'Report a change of address', 'Manzil oʻzgarishini xabar qiling', 'If you move, you must report the new address to the immigration office or the district office. Unofficial sources say 14 days: check this on Hi Korea.', 'Agar koʻchib oʻtsangiz, yangi manzilni immigratsiya xizmatiga yoki tuman maʼmuriyatiga xabar qilish kerak. Norasmiy manbalarda 14 kun muddat koʻrsatilgan — buni Hi Koreaʼda tekshiring.', 'Hi Korea — immigration service portal', 'Hi Korea — immigratsiya xizmati portali'),
   ('g_nhis', 'guide', 'health', 15, 'Госстраховка NHIS обязательна', 'С 1 марта 2021 года иностранные студенты обязательно подключаются к государственной медстраховке NHIS. Подключение происходит автоматически с даты регистрации иностранца, самому ничего подавать не нужно. Карту NHIS и инструкцию присылают на твой адрес в Корее.
 
-Размер ежемесячного взноса меняется — смотри на сайте NHIS.', 'Seoul National University — National Health Insurance', 'https://oga.snu.ac.kr/isss/immigration/national-health-insurance/', 'verified', '2026-11-12'),
+Размер ежемесячного взноса меняется — смотри на сайте NHIS.', 'Seoul National University — National Health Insurance', 'https://oga.snu.ac.kr/isss/immigration/national-health-insurance/', 'verified', '2026-11-12', 'NHIS national insurance is mandatory', 'NHIS davlat sugʻurtasi majburiy', 'Since 1 March 2021 international students are enrolled in the national NHIS health insurance. Enrolment happens automatically from the date of your foreigner registration; you don''t need to apply. The NHIS card and instructions are mailed to your address in Korea.
+
+The monthly premium changes: check the NHIS website.', '2021-yil 1-martdan boshlab xorijiy talabalar NHIS davlat tibbiy sugʻurtasiga majburiy ulanadi. Ulanish chet ellik roʻyxatdan oʻtgan sanadan avtomatik boʻladi, oʻzingiz hech narsa topshirishingiz shart emas. NHIS kartasi va yoʻriqnoma Koreyadagi manzilingizga yuboriladi.
+
+Oylik badal miqdori oʻzgaradi — NHIS saytidan koʻring.', 'Seoul National University — National Health Insurance', 'Seoul National University — National Health Insurance'),
   ('g_work', 'guide', 'work', 16, 'Подработка только с разрешением', 'С визой D-2 нельзя просто так работать. Сначала нужно получить разрешение иммиграционной службы, и только потом выходить на работу. Перед подачей вуз подтверждает заявку.
 
-Работа без разрешения — это штраф и проблемы с визой.', 'Korea University — Part-time Work', 'https://univ.korea.ac.kr/gsc/DegreeUndergraduate/Visa_Immigration/Part-timeWork/Part-timeWork.do', 'verified', '2026-11-12'),
+Работа без разрешения — это штраф и проблемы с визой.', 'Korea University — Part-time Work', 'https://univ.korea.ac.kr/gsc/DegreeUndergraduate/Visa_Immigration/Part-timeWork/Part-timeWork.do', 'verified', '2026-11-12', 'Part-time work only with a permit', 'Qoʻshimcha ish faqat ruxsat bilan', 'On a D-2 visa you can''t just start working. First get a permit from the immigration office, and only then start the job. The university approves the application before you submit it.
+
+Working without a permit means a fine and problems with your visa.', 'D-2 vizasi bilan shunchaki ishlab boʻlmaydi. Avval immigratsiya xizmatidan ruxsat olish kerak, shundan keyingina ishga chiqish mumkin. Topshirishdan oldin universitet arizani tasdiqlaydi.
+
+Ruxsatsiz ishlash — jarima va viza bilan muammolar demakdir.', 'Korea University — Part-time Work', 'Korea University — Part-time Work'),
   ('g_work_hours', 'guide', 'work', 17, 'Сколько часов можно работать', 'Лимит часов зависит от уровня TOPIK, курса и типа программы. Правила обновлялись, и в разных источниках цифры расходятся (от 10 до 30 часов в будни).
 
-Актуальную таблицу смотри на Study in Korea и уточняй в международном отделе своего вуза.', 'Study in Korea — Part-time work', 'https://www.studyinkorea.go.kr', 'check', ''),
-  ('g_bank', 'guide', 'life', 18, 'Банковский счёт', 'Счёт обычно открывают после получения Residence Card. Возьми паспорт, карту и справку об обучении. Условия зависят от банка.', 'Международный отдел вуза', '', 'check', ''),
-  ('g_sim', 'guide', 'life', 19, 'SIM-карта и связь', 'До получения Residence Card доступны в основном предоплаченные SIM. Контракт на своё имя обычно оформляют уже с картой.', 'Международный отдел вуза', '', 'check', ''),
-  ('g_transport', 'guide', 'life', 20, 'Транспорт', 'Автобусы и метро оплачиваются транспортной картой (например, T-money), её пополняют в магазинах у дома и на станциях.', 'Visit Korea', 'https://english.visitkorea.or.kr', 'check', ''),
-  ('g_emergency', 'guide', 'life', 21, 'Экстренные номера', '112 — полиция, 119 — пожарные и скорая, 1345 — контакт-центр иммиграционной службы для иностранцев.', 'Hi Korea — портал иммиграционной службы', 'https://www.hikorea.go.kr', 'check', '')
-on conflict (id) do update set kind = excluded.kind, section = excluded.section, sort = excluded.sort, title = excluded.title, body = excluded.body, source = excluded.source, source_url = excluded.source_url, status = excluded.status, verified_at = excluded.verified_at;
+Актуальную таблицу смотри на Study in Korea и уточняй в международном отделе своего вуза.', 'Study in Korea — Part-time work', 'https://www.studyinkorea.go.kr', 'check', '', 'How many hours you can work', 'Necha soat ishlash mumkin', 'The hour limit depends on your TOPIK level, year of study and programme type. The rules have changed, and sources give different numbers (from 10 to 30 hours on weekdays).
 
-insert into public.courses (id, sort, title, teacher, level, price_uzs, glyph, description) values
-  ('c_hangul', 0, 'Хангыль за 7 дней', 'Дилноза К. (демо-преподаватель)', 'С нуля', 149000, '한', 'Научишься читать и писать корейский алфавит. Без этого курса дальше никуда.'),
-  ('c_topik1', 1, 'TOPIK I: уверенный старт', 'Ким Со-ён (демо-преподаватель)', 'A1–A2', 349000, '토', 'Грамматика и лексика для первого и второго уровня TOPIK.'),
-  ('c_dorm', 2, 'Корейский для общежития', 'Жасур Т. (демо-преподаватель)', 'A2', 249000, '말', 'Фразы на каждый день: столовая, офис, аптека, соседи.'),
-  ('c_interview', 3, 'Интервью в вуз на корейском', 'Пак Мин-джи (демо-преподаватель)', 'B1', 399000, '꿈', 'Как рассказать о себе и своей цели на собеседовании.')
-on conflict (id) do update set sort = excluded.sort, title = excluded.title, teacher = excluded.teacher, level = excluded.level, price_uzs = excluded.price_uzs, glyph = excluded.glyph, description = excluded.description;
+Check the current table on Study in Korea and confirm with your university''s international office.', 'Soatlar chegarasi TOPIK darajasi, kurs va dastur turiga bogʻliq. Qoidalar yangilangan va turli manbalarda raqamlar farq qiladi (ish kunlarida 10 dan 30 soatgacha).
 
-insert into public.lessons (id, course_id, sort, title, minutes, free, content) values
+Amaldagi jadvalni Study in Koreaʼda koʻring va universitetingizning xalqaro boʻlimida aniqlang.', 'Study in Korea — Part-time work', 'Study in Korea — Part-time work'),
+  ('g_bank', 'guide', 'life', 18, 'Банковский счёт', 'Счёт обычно открывают после получения Residence Card. Возьми паспорт, карту и справку об обучении. Условия зависят от банка.', 'Международный отдел вуза', '', 'check', '', 'Bank account', 'Bank hisobi', 'You usually open an account after you get your Residence Card. Bring your passport, the card and a certificate of enrolment. Conditions depend on the bank.', 'Hisob odatda Residence Card olingandan keyin ochiladi. Pasport, karta va oʻqish haqidagi maʼlumotnomani oling. Shartlar bankka bogʻliq.', 'Your university''s international office', 'Universitetning xalqaro boʻlimi'),
+  ('g_sim', 'guide', 'life', 19, 'SIM-карта и связь', 'До получения Residence Card доступны в основном предоплаченные SIM. Контракт на своё имя обычно оформляют уже с картой.', 'Международный отдел вуза', '', 'check', '', 'SIM card and phone', 'SIM-karta va aloqa', 'Before you get the Residence Card, mostly prepaid SIM cards are available. A contract in your own name usually needs the card.', 'Residence Card olgunga qadar asosan oldindan toʻlanadigan SIM-kartalar mavjud. Oʻz nomingizga shartnoma odatda karta bilan rasmiylashtiriladi.', 'Your university''s international office', 'Universitetning xalqaro boʻlimi'),
+  ('g_transport', 'guide', 'life', 20, 'Транспорт', 'Автобусы и метро оплачиваются транспортной картой (например, T-money), её пополняют в магазинах у дома и на станциях.', 'Visit Korea', 'https://english.visitkorea.or.kr', 'check', '', 'Transport', 'Transport', 'Buses and the metro are paid with a transport card (for example T-money); you top it up at convenience stores and stations.', 'Avtobus va metro transport kartasi (masalan, T-money) bilan toʻlanadi, uni doʻkonlarda va bekatlarda toʻldirish mumkin.', 'Visit Korea', 'Visit Korea'),
+  ('g_emergency', 'guide', 'life', 21, 'Экстренные номера', '112 — полиция, 119 — пожарные и скорая, 1345 — контакт-центр иммиграционной службы для иностранцев.', 'Hi Korea — портал иммиграционной службы', 'https://www.hikorea.go.kr', 'check', '', 'Emergency numbers', 'Favqulodda raqamlar', '112 — police, 119 — fire and ambulance, 1345 — immigration contact centre for foreigners.', '112 — politsiya, 119 — oʻt oʻchiruvchilar va tez yordam, 1345 — chet elliklar uchun immigratsiya xizmati aloqa markazi.', 'Hi Korea — immigration service portal', 'Hi Korea — immigratsiya xizmati portali')
+on conflict (id) do update set kind = excluded.kind, section = excluded.section, sort = excluded.sort, title = excluded.title, body = excluded.body, source = excluded.source, source_url = excluded.source_url, status = excluded.status, verified_at = excluded.verified_at, title_en = excluded.title_en, title_uz = excluded.title_uz, body_en = excluded.body_en, body_uz = excluded.body_uz, source_en = excluded.source_en, source_uz = excluded.source_uz;
+
+insert into public.courses (id, sort, title, teacher, level, price_uzs, glyph, description, title_en, title_uz, level_en, level_uz, description_en, description_uz) values
+  ('c_hangul', 0, 'Хангыль за 7 дней', 'Dilnoza K.', 'С нуля', 149000, '한', 'Научишься читать и писать корейский алфавит. Без этого курса дальше никуда.', 'Hangul in 7 days', '7 kunda hangul', 'Beginner', 'Noldan', 'Learn to read and write the Korean alphabet. Everything else starts here.', 'Koreys alifbosida oʻqish va yozishni oʻrganasiz. Bu kurssiz oldinga yoʻl yoʻq.'),
+  ('c_topik1', 1, 'TOPIK I: уверенный старт', 'Kim So-yeon', 'A1–A2', 349000, '토', 'Грамматика и лексика для первого и второго уровня TOPIK.', 'TOPIK I: a confident start', 'TOPIK I: ishonchli start', 'A1–A2', 'A1–A2', 'Grammar and vocabulary for TOPIK levels 1 and 2.', 'TOPIK 1- va 2-darajalari uchun grammatika va soʻz boyligi.'),
+  ('c_dorm', 2, 'Корейский для общежития', 'Jasur T.', 'A2', 249000, '말', 'Фразы на каждый день: столовая, офис, аптека, соседи.', 'Korean for dorm life', 'Yotoqxona uchun koreys tili', 'A2', 'A2', 'Everyday phrases: canteen, office, pharmacy, roommates.', 'Har kungi iboralar: oshxona, ofis, dorixona, qoʻshnilar.'),
+  ('c_interview', 3, 'Интервью в вуз на корейском', 'Park Min-ji', 'B1', 399000, '꿈', 'Как рассказать о себе и своей цели на собеседовании.', 'University interview in Korean', 'Koreys tilida universitet suhbati', 'B1', 'B1', 'How to talk about yourself and your goal in an interview.', 'Suhbatda oʻzingiz va maqsadingiz haqida qanday gapirish kerak.')
+on conflict (id) do update set sort = excluded.sort, title = excluded.title, teacher = excluded.teacher, level = excluded.level, price_uzs = excluded.price_uzs, glyph = excluded.glyph, description = excluded.description, title_en = excluded.title_en, title_uz = excluded.title_uz, level_en = excluded.level_en, level_uz = excluded.level_uz, description_en = excluded.description_en, description_uz = excluded.description_uz;
+
+insert into public.lessons (id, course_id, sort, title, minutes, free, content, title_en, title_uz, content_en, content_uz) values
   ('l_hangul_1', 'c_hangul', 0, 'Шесть базовых гласных', 12, true, 'ㅏ — а
 ㅓ — о (открытое)
 ㅗ — о
@@ -251,7 +329,21 @@ insert into public.lessons (id, course_id, sort, title, minutes, free, content) 
 ㅡ — ы
 ㅣ — и
 
-Задание: напиши каждую букву по 10 раз и произнеси вслух.'),
+Задание: напиши каждую букву по 10 раз и произнеси вслух.', 'Six basic vowels', 'Oltita asosiy unli', 'ㅏ — a (as in “father”)
+ㅓ — eo (open o, as in “up”)
+ㅗ — o
+ㅜ — u
+ㅡ — eu (lips flat)
+ㅣ — i
+
+Task: write each letter 10 times and say it out loud.', 'ㅏ — a
+ㅓ — o (ochiq)
+ㅗ — o
+ㅜ — u
+ㅡ — i (lablar choʻzilmaydi)
+ㅣ — i
+
+Topshiriq: har bir harfni 10 martadan yozing va ovoz chiqarib ayting.'),
   ('l_hangul_2', 'c_hangul', 1, 'Первые согласные', 15, false, 'ㄱ — к/г
 ㄴ — н
 ㄷ — т/д
@@ -260,7 +352,23 @@ insert into public.lessons (id, course_id, sort, title, minutes, free, content) 
 ㅂ — п/б
 ㅅ — с
 ㅇ — не читается в начале слога, «нг» в конце
-ㅈ — ч/дж'),
+ㅈ — ч/дж', 'First consonants', 'Birinchi undoshlar', 'ㄱ — k/g
+ㄴ — n
+ㄷ — t/d
+ㄹ — r/l
+ㅁ — m
+ㅂ — p/b
+ㅅ — s
+ㅇ — silent at the start of a syllable, “ng” at the end
+ㅈ — ch/j', 'ㄱ — k/g
+ㄴ — n
+ㄷ — t/d
+ㄹ — r/l
+ㅁ — m
+ㅂ — p/b
+ㅅ — s
+ㅇ — boʻgʻin boshida oʻqilmaydi, oxirida «ng»
+ㅈ — ch/j'),
   ('l_hangul_3', 'c_hangul', 2, 'Как собирается слог', 14, false, 'Слог — это блок: согласная + гласная (+ согласная снизу).
 
 ㄱ + ㅏ = 가 (ка)
@@ -268,63 +376,150 @@ insert into public.lessons (id, course_id, sort, title, minutes, free, content) 
 ㅎ + ㅏ + ㄴ = 한 (хан)
 ㄱ + ㅡ + ㄹ = 글 (кыль)
 
-한글 — хангыль.'),
+한글 — хангыль.', 'How a syllable is built', 'Boʻgʻin qanday tuziladi', 'A syllable is a block: consonant + vowel (+ a consonant below).
+
+ㄱ + ㅏ = 가 (ga)
+ㄴ + ㅏ = 나 (na)
+ㅎ + ㅏ + ㄴ = 한 (han)
+ㄱ + ㅡ + ㄹ = 글 (geul)
+
+한글 — hangul.', 'Boʻgʻin — bu blok: undosh + unli (+ pastda undosh).
+
+ㄱ + ㅏ = 가 (ka)
+ㄴ + ㅏ = 나 (na)
+ㅎ + ㅏ + ㄴ = 한 (han)
+ㄱ + ㅡ + ㄹ = 글 (kil)
+
+한글 — hangul.'),
   ('l_hangul_4', 'c_hangul', 3, 'Читаем первые слова', 16, false, '안녕하세요 — здравствуйте
 감사합니다 — спасибо
 네 — да
 아니요 — нет
 학생 — студент
-대학교 — университет'),
+대학교 — университет', 'Reading your first words', 'Birinchi soʻzlarni oʻqiymiz', '안녕하세요 — hello
+감사합니다 — thank you
+네 — yes
+아니요 — no
+학생 — student
+대학교 — university', '안녕하세요 — assalomu alaykum
+감사합니다 — rahmat
+네 — ha
+아니요 — yoʻq
+학생 — talaba
+대학교 — universitet'),
   ('l_topik1_1', 'c_topik1', 4, 'Из чего состоит TOPIK I', 10, true, 'TOPIK I проверяет аудирование и чтение. Письменной части нет — она появляется в TOPIK II.
 
-План курса: частицы, числа, вежливый стиль, типовые задания.'),
+План курса: частицы, числа, вежливый стиль, типовые задания.', 'What TOPIK I is made of', 'TOPIK I nimalardan iborat', 'TOPIK I tests listening and reading. There is no writing part: it appears in TOPIK II.
+
+Course plan: particles, numbers, the polite style, typical tasks.', 'TOPIK I tinglab tushunish va oʻqishni tekshiradi. Yozma qismi yoʻq — u TOPIK IIʼda paydo boʻladi.
+
+Kurs rejasi: yuklamalar, sonlar, xushmuomala uslub, odatiy topshiriqlar.'),
   ('l_topik1_2', 'c_topik1', 5, 'Частицы 은/는 и 이/가', 18, false, '은/는 — тема предложения: 저는 학생이에요 (Я студент).
 이/가 — подлежащее: 비가 와요 (Идёт дождь).
 
-После согласной — 은 и 이, после гласной — 는 и 가.'),
+После согласной — 은 и 이, после гласной — 는 и 가.', 'Particles 은/는 and 이/가', '은/는 va 이/가 yuklamalari', '은/는 — topic of the sentence: 저는 학생이에요 (I am a student).
+이/가 — subject: 비가 와요 (It is raining).
+
+After a consonant use 은 and 이, after a vowel use 는 and 가.', '은/는 — gap mavzusi: 저는 학생이에요 (Men talabaman).
+이/가 — ega: 비가 와요 (Yomgʻir yogʻyapti).
+
+Undoshdan keyin 은 va 이, unlidan keyin 는 va 가.'),
   ('l_topik1_3', 'c_topik1', 6, 'Два ряда чисел', 17, false, 'Корейские: 하나, 둘, 셋, 넷, 다섯 — для счёта предметов и возраста.
-Сино-корейские: 일, 이, 삼, 사, 오 — для дат, денег, номеров.'),
+Сино-корейские: 일, 이, 삼, 사, 오 — для дат, денег, номеров.', 'Two sets of numbers', 'Ikki xil sonlar', 'Native Korean: 하나, 둘, 셋, 넷, 다섯 — for counting things and age.
+Sino-Korean: 일, 이, 삼, 사, 오 — for dates, money, numbers.', 'Koreyscha: 하나, 둘, 셋, 넷, 다섯 — narsalarni va yoshni sanash uchun.
+Xitoy-koreyscha: 일, 이, 삼, 사, 오 — sanalar, pul, raqamlar uchun.'),
   ('l_topik1_4', 'c_topik1', 7, 'Вежливый стиль -아요/어요', 20, false, '가다 → 가요 (иду)
 먹다 → 먹어요 (ем)
 공부하다 → 공부해요 (учусь)
 
-Этот стиль подходит почти для любой повседневной ситуации.'),
+Этот стиль подходит почти для любой повседневной ситуации.', 'Polite style -아요/어요', '-아요/어요 xushmuomala uslubi', '가다 → 가요 (I go)
+먹다 → 먹어요 (I eat)
+공부하다 → 공부해요 (I study)
+
+This style fits almost any everyday situation.', '가다 → 가요 (boraman)
+먹다 → 먹어요 (yeyman)
+공부하다 → 공부해요 (oʻqiyman)
+
+Bu uslub deyarli har qanday kundalik vaziyatga mos keladi.'),
   ('l_dorm_1', 'c_dorm', 8, 'Знакомство с соседом', 11, true, '안녕하세요, 저는 ...입니다 — Здравствуйте, я ...
 우즈베키스탄에서 왔어요 — Я приехал из Узбекистана
-잘 부탁드립니다 — Рассчитываю на хорошее отношение'),
+잘 부탁드립니다 — Рассчитываю на хорошее отношение', 'Meeting your roommate', 'Qoʻshni bilan tanishuv', '안녕하세요, 저는 ...입니다 — Hello, I am ...
+우즈베키스탄에서 왔어요 — I came from Uzbekistan
+잘 부탁드립니다 — Nice to meet you, I look forward to getting along', '안녕하세요, 저는 ...입니다 — Assalomu alaykum, men ...
+우즈베키스탄에서 왔어요 — Men Oʻzbekistondan keldim
+잘 부탁드립니다 — Tanishganimdan xursandman, yaxshi munosabatda boʻlaylik'),
   ('l_dorm_2', 'c_dorm', 9, 'В столовой и магазине', 13, false, '이거 주세요 — Дайте это, пожалуйста
 얼마예요? — Сколько стоит?
 카드 돼요? — Картой можно?
-돼지고기 들어 있어요? — Здесь есть свинина?'),
+돼지고기 들어 있어요? — Здесь есть свинина?', 'At the canteen and shop', 'Oshxona va doʻkonda', '이거 주세요 — This one, please
+얼마예요? — How much is it?
+카드 돼요? — Can I pay by card?
+돼지고기 들어 있어요? — Is there pork in it?', '이거 주세요 — Mana buni bering, iltimos
+얼마예요? — Qancha turadi?
+카드 돼요? — Karta bilan boʻladimi?
+돼지고기 들어 있어요? — Ichida choʻchqa goʻshti bormi?'),
   ('l_dorm_3', 'c_dorm', 10, 'В офисе и администрации', 15, false, '도와주세요 — Помогите, пожалуйста
 외국인등록증 — карта регистрации иностранца
 재학증명서 — справка об обучении
-어디에서 신청해요? — Где подать заявление?'),
+어디에서 신청해요? — Где подать заявление?', 'At the office', 'Ofis va maʼmuriyatda', '도와주세요 — Please help me
+외국인등록증 — foreigner registration card
+재학증명서 — certificate of enrolment
+어디에서 신청해요? — Where do I apply?', '도와주세요 — Yordam bering, iltimos
+외국인등록증 — chet ellik roʻyxat kartasi
+재학증명서 — oʻqish haqida maʼlumotnoma
+어디에서 신청해요? — Arizani qayerga topshiraman?'),
   ('l_dorm_4', 'c_dorm', 11, 'В аптеке', 12, false, '약국 — аптека
 머리가 아파요 — У меня болит голова
 감기에 걸렸어요 — Я простудился
-약 주세요 — Дайте лекарство'),
+약 주세요 — Дайте лекарство', 'At the pharmacy', 'Dorixonada', '약국 — pharmacy
+머리가 아파요 — I have a headache
+감기에 걸렸어요 — I caught a cold
+약 주세요 — Medicine, please', '약국 — dorixona
+머리가 아파요 — Boshim ogʻriyapti
+감기에 걸렸어요 — Shamolladim
+약 주세요 — Dori bering'),
   ('l_int_1', 'c_interview', 12, 'Самопрезентация', 14, true, '자기소개 — рассказ о себе. Структура: кто ты → что изучал → почему Корея → цель.
 
-저는 우즈베키스탄에서 온 ...입니다 — Я ..., приехал из Узбекистана.'),
+저는 우즈베키스탄에서 온 ...입니다 — Я ..., приехал из Узбекистана.', 'Introducing yourself', 'Oʻzini tanishtirish', '자기소개 — introducing yourself. Structure: who you are → what you studied → why Korea → your goal.
+
+저는 우즈베키스탄에서 온 ...입니다 — I am ..., from Uzbekistan.', '자기소개 — oʻzingiz haqingizda hikoya. Tuzilishi: kimsiz → nimani oʻrgangansiz → nega Koreya → maqsad.
+
+저는 우즈베키스탄에서 온 ...입니다 — Men ..., Oʻzbekistondan keldim.'),
   ('l_int_2', 'c_interview', 13, 'Мотивация', 16, false, '지원 동기 — причина подачи.
 한국에서 공부하고 싶습니다 — Я хочу учиться в Корее.
-이 전공에 관심이 많습니다 — Мне очень интересна эта специальность.'),
+이 전공에 관심이 많습니다 — Мне очень интересна эта специальность.', 'Motivation', 'Motivatsiya', '지원 동기 — reason for applying.
+한국에서 공부하고 싶습니다 — I want to study in Korea.
+이 전공에 관심이 많습니다 — I am very interested in this major.', '지원 동기 — ariza berish sababi.
+한국에서 공부하고 싶습니다 — Men Koreyada oʻqishni xohlayman.
+이 전공에 관심이 많습니다 — Bu mutaxassislik menga juda qiziq.'),
   ('l_int_3', 'c_interview', 14, 'Планы после выпуска', 15, false, '졸업 후 계획 — планы после выпуска.
-졸업 후에 고향에 돌아가서 일하고 싶습니다 — После выпуска я хочу вернуться на родину и работать.'),
+졸업 후에 고향에 돌아가서 일하고 싶습니다 — После выпуска я хочу вернуться на родину и работать.', 'Plans after graduation', 'Bitirgandan keyingi rejalar', '졸업 후 계획 — plans after graduation.
+졸업 후에 고향에 돌아가서 일하고 싶습니다 — After graduating I want to return home and work.', '졸업 후 계획 — bitirgandan keyingi rejalar.
+졸업 후에 고향에 돌아가서 일하고 싶습니다 — Bitirgandan keyin vatanimga qaytib ishlamoqchiman.'),
   ('l_int_4', 'c_interview', 15, 'Официальный стиль -습니다', 18, false, 'На интервью используют официальный стиль.
 가다 → 갑니다
 먹다 → 먹습니다
+공부하다 → 공부합니다', 'Formal style -습니다', '-습니다 rasmiy uslubi', 'Interviews use the formal style.
+가다 → 갑니다
+먹다 → 먹습니다
+공부하다 → 공부합니다', 'Suhbatda rasmiy uslub ishlatiladi.
+가다 → 갑니다
+먹다 → 먹습니다
 공부하다 → 공부합니다')
-on conflict (id) do update set course_id = excluded.course_id, sort = excluded.sort, title = excluded.title, minutes = excluded.minutes, free = excluded.free, content = excluded.content;
+on conflict (id) do update set course_id = excluded.course_id, sort = excluded.sort, title = excluded.title, minutes = excluded.minutes, free = excluded.free, content = excluded.content, title_en = excluded.title_en, title_uz = excluded.title_uz, content_en = excluded.content_en, content_uz = excluded.content_uz;
 
-insert into public.universities (id, sort, name, city, type, url) values
-  ('u_snu', 0, 'Seoul National University', 'Сеул', 'Государственный', 'https://www.snu.ac.kr'),
-  ('u_kaist', 1, 'KAIST', 'Тэджон', 'Государственный', 'https://www.kaist.ac.kr'),
-  ('u_yonsei', 2, 'Yonsei University', 'Сеул', 'Частный', 'https://www.yonsei.ac.kr'),
-  ('u_korea', 3, 'Korea University', 'Сеул', 'Частный', 'https://www.korea.ac.kr'),
-  ('u_ajou', 4, 'Ajou University', 'Сувон', 'Частный', 'https://www.ajou.ac.kr'),
-  ('u_inha', 5, 'Inha University', 'Инчхон', 'Частный', 'https://www.inha.ac.kr'),
-  ('u_pnu', 6, 'Pusan National University', 'Пусан', 'Государственный', 'https://www.pusan.ac.kr'),
-  ('u_skku', 7, 'Sungkyunkwan University', 'Сеул / Сувон', 'Частный', 'https://www.skku.edu')
-on conflict (id) do update set sort = excluded.sort, name = excluded.name, city = excluded.city, type = excluded.type, url = excluded.url;
+insert into public.universities (id, sort, name, city, type, url, city_en, city_uz, type_en, type_uz) values
+  ('u_snu', 0, 'Seoul National University', 'Сеул', 'Государственный', 'https://www.snu.ac.kr', 'Seoul', 'Seul', 'Public', 'Davlat'),
+  ('u_kaist', 1, 'KAIST', 'Тэджон', 'Государственный', 'https://www.kaist.ac.kr', 'Daejeon', 'Tejon', 'Public', 'Davlat'),
+  ('u_yonsei', 2, 'Yonsei University', 'Сеул', 'Частный', 'https://www.yonsei.ac.kr', 'Seoul', 'Seul', 'Private', 'Xususiy'),
+  ('u_korea', 3, 'Korea University', 'Сеул', 'Частный', 'https://www.korea.ac.kr', 'Seoul', 'Seul', 'Private', 'Xususiy'),
+  ('u_ajou', 4, 'Ajou University', 'Сувон', 'Частный', 'https://www.ajou.ac.kr', 'Suwon', 'Suvon', 'Private', 'Xususiy'),
+  ('u_inha', 5, 'Inha University', 'Инчхон', 'Частный', 'https://www.inha.ac.kr', 'Incheon', 'Inchxon', 'Private', 'Xususiy'),
+  ('u_pnu', 6, 'Pusan National University', 'Пусан', 'Государственный', 'https://www.pusan.ac.kr', 'Busan', 'Pusan', 'Public', 'Davlat'),
+  ('u_skku', 7, 'Sungkyunkwan University', 'Сеул / Сувон', 'Частный', 'https://www.skku.edu', 'Seoul / Suwon', 'Seul / Suvon', 'Private', 'Xususiy')
+on conflict (id) do update set sort = excluded.sort, name = excluded.name, city = excluded.city, type = excluded.type, url = excluded.url, city_en = excluded.city_en, city_uz = excluded.city_uz, type_en = excluded.type_en, type_uz = excluded.type_uz;
+
+update public.profiles set goal = case goal
+  when 'Бакалавриат' then 'bachelor' when 'Магистратура' then 'master'
+  when 'Языковые курсы' then 'language' when 'Обмен' then 'exchange' else goal end
+where goal in ('Бакалавриат', 'Магистратура', 'Языковые курсы', 'Обмен');
