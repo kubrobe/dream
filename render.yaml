@@ -1,0 +1,20 @@
+# Render Blueprint: one web service = the Dream website + its API (web/server/index.mjs).
+# Render dashboard -> New -> Blueprint -> pick this repository.
+services:
+  - type: web
+    name: dream-web
+    runtime: node
+    plan: free
+    rootDir: web
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Public values (the publishable key is made to be public; Row Level Security protects the data).
+      - key: SUPABASE_URL
+        value: https://fryulyyrppyimbshsnvf.supabase.co
+      - key: SUPABASE_ANON_KEY
+        value: sb_publishable_W5GebSnGN1vd2umX-qKGkw_qSNNFSIi

@@ -7,6 +7,7 @@ It writes two files from the lists below, so the app's built-in copy and the
 Supabase database always hold the same text:
   - app/src/main/java/uz/dream/app/data/SeedData.kt   (first-start / offline copy)
   - supabase/schema.sql                               (tables + security rules + content)
+  - web/src/data/seed.json                            (the website's built-in copy, same rows as Supabase)
 
 Every text exists in three languages: Russian (the original), English and Uzbek (Latin alphabet).
 Write them with T(ru, en, uz). In the database the Russian text is in `title`, `body`, ...,
@@ -798,6 +799,31 @@ def build_sql() -> str:
     return "\n".join(out)
 
 
+# ---------------------------------------------------------------- Web (JSON, same columns as Supabase)
+def build_web_json() -> str:
+    import json
+    cards = [{"id": cid, "kind": kind, "section": section, "sort": i, "title": title["ru"], "body": body["ru"],
+              "source": source["ru"], "source_url": url, "status": status,
+              "verified_at": TODAY if status == "verified" else "",
+              "title_en": title["en"], "title_uz": title["uz"], "body_en": body["en"], "body_uz": body["uz"],
+              "source_en": source["en"], "source_uz": source["uz"]}
+             for i, (cid, kind, section, title, body, source, url, status) in enumerate(CARDS)]
+    courses = [{"id": cid, "sort": i, "title": title["ru"], "teacher": teacher, "level": level["ru"], "price_uzs": price,
+                "glyph": glyph, "description": desc["ru"], "title_en": title["en"], "title_uz": title["uz"],
+                "level_en": level["en"], "level_uz": level["uz"], "description_en": desc["en"], "description_uz": desc["uz"]}
+               for i, (cid, title, teacher, level, price, glyph, desc) in enumerate(COURSES)]
+    lessons = [{"id": lid, "course_id": course, "sort": i, "title": title["ru"], "minutes": minutes, "free": free,
+                "content": content["ru"], "title_en": title["en"], "title_uz": title["uz"],
+                "content_en": content["en"], "content_uz": content["uz"]}
+               for i, (lid, course, title, minutes, free, content) in enumerate(LESSONS)]
+    unis = [{"id": uid, "sort": i, "name": name, "city": city["ru"], "type": typ["ru"], "url": url,
+             "city_en": city["en"], "city_uz": city["uz"], "type_en": typ["en"], "type_uz": typ["uz"]}
+            for i, (uid, name, city, typ, url) in enumerate(UNIVERSITIES)]
+    data = {"_generated": "tools/build_content.py - do not edit by hand", "cards": cards, "courses": courses,
+            "lessons": lessons, "universities": unis}
+    return json.dumps(data, ensure_ascii=False, indent=1) + "\n"
+
+
 if __name__ == "__main__":
     ids = [c[0] for c in CARDS] + [c[0] for c in COURSES] + [l[0] for l in LESSONS] + [u[0] for u in UNIVERSITIES]
     assert len(ids) == len(set(ids)), "duplicate id"
@@ -815,5 +841,8 @@ if __name__ == "__main__":
     kotlin.write_text(build_kotlin(), encoding="utf-8")
     sql = ROOT / "supabase/schema.sql"
     sql.write_text(build_sql(), encoding="utf-8")
-    print(f"wrote {kotlin.relative_to(ROOT)} and {sql.relative_to(ROOT)}: "
+    web = ROOT / "web/src/data/seed.json"
+    web.parent.mkdir(parents=True, exist_ok=True)
+    web.write_text(build_web_json(), encoding="utf-8")
+    print(f"wrote {kotlin.relative_to(ROOT)}, {sql.relative_to(ROOT)} and {web.relative_to(ROOT)}: "
           f"{len(CARDS)} cards, {len(COURSES)} courses, {len(LESSONS)} lessons, {len(UNIVERSITIES)} universities")

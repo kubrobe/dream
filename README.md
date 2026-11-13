@@ -1,4 +1,4 @@
-# Dream (Android)
+# Dream (Android + web)
 
 Dream helps students from Uzbekistan get into a university in South Korea without paying a consulting agency.
 The app speaks **Uzbek (Latin), Russian and English** and switches language instantly, without a restart.
@@ -13,7 +13,37 @@ Plus **Universities** (a student shows interest in a university, only with conse
 
 Kotlin + Jetpack Compose (Material 3) + Room + MVVM. Backend: **Supabase** (Auth + PostgreSQL + REST API). The future web version will use the same Supabase project, so web and app share accounts and data.
 
-## Run
+## Website (web/)
+
+Landing page + the same app in the browser (roadmap, guide, courses, rooms, universities, profile) + a small API.
+Same Supabase project as the Android app, so **one account works in both**. Uzbek, English, Russian; light and dark theme.
+
+React + TypeScript + Vite, Express for the API, hosted on **Render** as one web service (`render.yaml`).
+
+```
+cd web
+npm install
+npm run build && npm start      # http://localhost:3000  (site + API)
+npm run dev                     # live-reload while editing (run `npm start` too for /api)
+npm test                        # tests for the 85% / 15% split
+```
+
+API (what the professor can open in a browser):
+
+| Endpoint | What it does |
+|---|---|
+| `GET /api` | list of endpoints |
+| `GET /api/health` | server is up and can reach Supabase |
+| `GET /api/stats` | content in the database: cards by status, courses, lessons, universities |
+| `GET /api/courses` | courses with the 85% / 15% split of each price |
+| `GET /api/courses/:id/quote` | the split for one course |
+| `POST /api/enroll` | demo purchase: checks the user's token, reads the price from the database, calculates the split on the server and saves it |
+
+Deploy on Render: **New → Blueprint → kubrobe/dream**. Render reads `render.yaml`, builds `web/` and redeploys on every push to `main`.
+
+The site's texts shared with the app come from the app's `strings.xml` (`npm run strings`), and its built-in content copy `web/src/data/seed.json` is written by `tools/build_content.py`, so app, site and database say the same thing.
+
+## Run the Android app
 
 1. Android Studio → File → Open → choose this folder (the one with `settings.gradle.kts`).
 2. Wait for Gradle sync, then press the green Run button. Needs an emulator or phone with **Android 8.0 (API 26) or newer**.

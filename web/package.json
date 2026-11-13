@@ -1,0 +1,35 @@
+{
+  "name": "dream-web",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Dream website: landing page + web app (same Supabase accounts as the Android app) + a small API",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "strings": "node scripts/strings.mjs",
+    "build": "tsc -b && vite build",
+    "start": "node server/index.mjs",
+    "test": "node --test server/money.test.mjs"
+  },
+  "dependencies": {
+    "@fontsource/onest": "^5.3.1",
+    "@fontsource/unbounded": "^5.3.0",
+    "@supabase/supabase-js": "^2.119.0",
+    "express": "^5.3.0",
+    "motion": "^14.13.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  }
+}
